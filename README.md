@@ -1,0 +1,3 @@
+# markdown-parser
+
+A toy *markdown parser* written in _Rust_.

@@ -10,6 +10,7 @@ pub enum MarkdownToken {
     CloseParen,
     OpenSquareBracket,
     CloseSquareBracket,
+    NewLine,
     Content(String),
 }
 
@@ -68,13 +69,20 @@ impl<'a> Lexer<'a> {
                 ')' => break,
                 '[' => break,
                 ']' => break,
-                _ => to_yield.push(self.current),
+                _ => {
+                    to_yield.push(self.current);
+                    self.current = self.chars.next().unwrap_or('\0');
+                }
             }
-            self.current = self.chars.next().unwrap_or('\0');
         }
         to_yield
     }
-    pub fn next(&mut self) -> Option<MarkdownToken> {
+}
+
+impl<'a> Iterator for Lexer<'a> {
+    type Item = MarkdownToken;
+
+    fn next(&mut self) -> Option<Self::Item> {
         // TODO: impl position tracker.
         if self.current == '\0' {
             // EOF
@@ -92,6 +100,18 @@ impl<'a> Lexer<'a> {
             ']' => MarkdownToken::CloseSquareBracket,
             _ => MarkdownToken::Content(self.advance_content()),
         };
+
+        match to_yield {
+            // in case of plain content, Lexer::advance_content would have
+            // advanced the chars iterator upto a special character
+            // so we want to avoid advancing the iterator here again.
+            MarkdownToken::Content(_) => {
+                self.current = self.current;
+            }
+            _ => {
+                self.current = self.chars.next().unwrap_or('\0');
+            }
+        }
 
         Some(to_yield)
     }
