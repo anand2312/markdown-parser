@@ -4,7 +4,7 @@ mod parser;
 
 fn main() {
     let _content = fs::read_to_string("test.md").expect("Couldn't read file.");
-    let mut parser = parser::Parser::new("# Hello world\n");
+    let mut parser = parser::Parser::new("# how are u");
 
     println!("{:?}", &parser.lexer_tokens);
 
