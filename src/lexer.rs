@@ -1,7 +1,7 @@
 use std::str::Chars;
 
 #[derive(Debug)]
-pub enum MarkdownToken {
+pub enum LexerToken {
     Hash,
     Asterisk,
     Underscore,
@@ -12,6 +12,7 @@ pub enum MarkdownToken {
     CloseSquareBracket,
     CarriageReturn, // \r - appears on Windows paired with \n
     NewLine,
+    EOF,
     Content(String),
 }
 
@@ -55,7 +56,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = MarkdownToken;
+    type Item = LexerToken;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current == '\0' {
@@ -64,24 +65,24 @@ impl<'a> Iterator for Lexer<'a> {
         }
 
         let to_yield = match self.current {
-            '#' => MarkdownToken::Hash,
-            '*' => MarkdownToken::Asterisk,
-            '_' => MarkdownToken::Underscore,
-            '\\' => MarkdownToken::Backslash,
-            '(' => MarkdownToken::OpenParen,
-            ')' => MarkdownToken::CloseParen,
-            '[' => MarkdownToken::OpenSquareBracket,
-            ']' => MarkdownToken::CloseSquareBracket,
-            '\r' => MarkdownToken::CarriageReturn,
-            '\n' => MarkdownToken::NewLine,
-            _ => MarkdownToken::Content(self.advance_content()),
+            '#' => LexerToken::Hash,
+            '*' => LexerToken::Asterisk,
+            '_' => LexerToken::Underscore,
+            '\\' => LexerToken::Backslash,
+            '(' => LexerToken::OpenParen,
+            ')' => LexerToken::CloseParen,
+            '[' => LexerToken::OpenSquareBracket,
+            ']' => LexerToken::CloseSquareBracket,
+            '\r' => LexerToken::CarriageReturn,
+            '\n' => LexerToken::NewLine,
+            _ => LexerToken::Content(self.advance_content()),
         };
 
         match to_yield {
             // in case of plain content, Lexer::advance_content would have
             // advanced the chars iterator upto a special character
             // so we want to avoid advancing the iterator here again.
-            MarkdownToken::Content(_) => {
+            LexerToken::Content(_) => {
                 self.current = self.current;
             }
             _ => {

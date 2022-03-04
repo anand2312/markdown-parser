@@ -1,2 +1,3 @@
 mod lexer;
-pub use lexer::{Lexer, MarkdownToken};
+mod parser;
+pub use parser::{Parser, Block, ParsedToken};
