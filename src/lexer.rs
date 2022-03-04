@@ -61,6 +61,7 @@ impl<'a> Lexer<'a> {
         let mut to_yield = String::new();
         loop {
             match self.current {
+                '\0' => break,
                 '#' => break,
                 '*' => break,
                 '_' => break,
