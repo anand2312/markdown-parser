@@ -1,6 +1,6 @@
 use crate::lexer::{Lexer, LexerToken};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[allow(dead_code)]
 pub enum ParsedToken {
     Header { level: usize, content: String },
@@ -10,10 +10,17 @@ pub enum ParsedToken {
     Text { content: String },
 }
 
+#[derive(Debug)]
 pub struct Block {
     // Blocks are different sections of the document,
     // separated by double-newlines (a blank line in betweem)
     pub children: Vec<ParsedToken>,
+}
+
+impl PartialEq for Block {
+    fn eq(&self, other: &Self) -> bool {
+        self.children == other.children
+    }
 }
 
 #[allow(dead_code)]
@@ -37,6 +44,17 @@ impl Parser {
                 .filter(|x| !matches!(x, LexerToken::CarriageReturn))
                 .collect(),
             current: 0,
+        }
+    }
+
+    pub fn with_current_at(content: &str, current: usize) -> Parser {
+        let lexer = Lexer::new(content);
+        Parser {
+            lexer_tokens: lexer
+                .into_iter()
+                .filter(|x| !matches!(x, LexerToken::CarriageReturn))
+                .collect(),
+            current,
         }
     }
 
@@ -66,6 +84,7 @@ impl Parser {
         };
 
         if !is_header {
+            // TODO: FIX!! the next content tag may be inside some other container which would mess up position.
             // add the # sign to a nearby Content tag
             let mut i = self.current.clone() + 1;
             loop {
@@ -101,6 +120,14 @@ impl Parser {
                         header_content += s;
                     }
                     LexerToken::NewLine => {
+                        break Some(Block {
+                            children: vec![ParsedToken::Header {
+                                level: level,
+                                content: header_content,
+                            }],
+                        });
+                    }
+                    LexerToken::EOF => {
                         break Some(Block {
                             children: vec![ParsedToken::Header {
                                 level: level,
