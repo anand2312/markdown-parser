@@ -39,10 +39,7 @@ impl Parser {
     pub fn new(content: &str) -> Parser {
         let lexer = Lexer::new(content);
         Parser {
-            lexer_tokens: lexer
-                .into_iter()
-                .filter(|x| !matches!(x, LexerToken::CarriageReturn))
-                .collect(),
+            lexer_tokens: lexer.into_iter().collect(),
             current: 0,
         }
     }
@@ -50,10 +47,7 @@ impl Parser {
     pub fn with_current_at(content: &str, current: usize) -> Parser {
         let lexer = Lexer::new(content);
         Parser {
-            lexer_tokens: lexer
-                .into_iter()
-                .filter(|x| !matches!(x, LexerToken::CarriageReturn))
-                .collect(),
+            lexer_tokens: lexer.into_iter().collect(),
             current,
         }
     }
@@ -70,6 +64,53 @@ impl Parser {
             return &LexerToken::EOF;
         }
         &self.lexer_tokens[*current]
+    }
+
+    fn squash_stray_token(&mut self, current: &usize) {
+        // Squash stray # or - tokens into nearby Content tokens
+        let back = self.peak_back(current);
+        let front = self.peak_next(current);
+        let mut token_text = match &self.lexer_tokens[*current] {
+            LexerToken::Hash => "#".to_owned(),
+            LexerToken::Dash => "-".to_owned(),
+            t => panic!("Attempted to squash non-leaf token {:?}", t),
+        };
+
+        // either the front or the back has to be Content tokens
+        // if both are Content, it doesn't matter where you squash to
+        // if back is Content and front isn't, squash back
+        // if back is not Content and front is, squash front
+        match (front, back) {
+            (LexerToken::Content(back_content), _) => {
+                token_text += back_content;
+                self.lexer_tokens[current - 1] = LexerToken::Content(token_text);
+            }
+            (_, LexerToken::Content(front_content)) => {
+                token_text += front_content;
+                self.lexer_tokens[current + 1] = LexerToken::Content(token_text);
+            }
+            (ub, uf) => panic!(
+                "Attempting to squash {:?} when neither front or back are Content ({:?}, {:?})",
+                &token_text, ub, uf
+            ),
+        };
+        self.lexer_tokens.remove(*current);
+    }
+
+    fn first_pass(&mut self) {
+        // First pass of the parser
+        // Removes the CarriageReturn tokens
+        // Puts stray Hash/Dash tokens into corresponding Content tokens
+        for i in 0..self.lexer_tokens.len() {
+            match self.lexer_tokens[i] {
+                LexerToken::CarriageReturn => {
+                    self.lexer_tokens.remove(i);
+                }
+                LexerToken::Hash => self.squash_stray_token(&i),
+                LexerToken::Dash => self.squash_stray_token(&i),
+                _ => {}
+            }
+        }
     }
 
     pub fn parse_hashtag(&mut self) -> Option<Block> {
