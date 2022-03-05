@@ -13,6 +13,7 @@ pub enum LexerToken {
     CarriageReturn, // \r - appears on Windows paired with \n
     NewLine,
     EOF,
+    Dash,
     Content(String),
 }
 
@@ -45,6 +46,7 @@ impl<'a> Lexer<'a> {
                 ']' => break,
                 '\n' => break,
                 '\r' => break,
+                '-' => break,
                 _ => {
                     to_yield.push(self.current);
                     self.current = self.chars.next().unwrap_or('\0');
@@ -75,6 +77,7 @@ impl<'a> Iterator for Lexer<'a> {
             ']' => LexerToken::CloseSquareBracket,
             '\r' => LexerToken::CarriageReturn,
             '\n' => LexerToken::NewLine,
+            '-' => LexerToken::Dash,
             _ => LexerToken::Content(self.advance_content()),
         };
 
