@@ -84,17 +84,19 @@ impl Parser {
             (LexerToken::Content(back_content), _) => {
                 token_text += back_content;
                 self.lexer_tokens[current - 1] = LexerToken::Content(token_text);
+                self.lexer_tokens.remove(*current);
             }
             (_, LexerToken::Content(front_content)) => {
                 token_text += front_content;
                 self.lexer_tokens[current + 1] = LexerToken::Content(token_text);
+                self.lexer_tokens.remove(*current);
             }
-            (ub, uf) => panic!(
-                "Attempting to squash {:?} when neither front or back are Content ({:?}, {:?})",
-                &token_text, ub, uf
-            ),
+            (_, _) => {
+                // non-Content tokens on either side, so just turn this into
+                // a Content token.
+                self.lexer_tokens[*current] = LexerToken::Content(token_text);
+            }
         };
-        self.lexer_tokens.remove(*current);
     }
 
     fn first_pass(&mut self) {
